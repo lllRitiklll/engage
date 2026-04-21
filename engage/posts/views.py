@@ -33,8 +33,35 @@ def feed(request):
     })
 
 
+
 @login_required
 def like_post(request, post_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request"}, status=400)
+
+    post = get_object_or_404(Post, id=post_id)
+    user = request.user
+
+    like = Like.objects.filter(user=user, post=post)
+    liked = False
+
+    if like.exists():
+        like.delete()
+    else:
+        Like.objects.create(user=user, post=post)
+        liked = True
+
+        if post.user != user:
+            Notification.objects.create(
+                sender=user,
+                receiver=post.user,
+                message="liked your post"
+            )
+
+    return JsonResponse({
+        'liked': liked,
+        'likes_count': post.like_set.count()
+    })
     post = Post.objects.get(id=post_id)
     user = request.user
 
